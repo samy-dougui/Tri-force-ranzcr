@@ -9,6 +9,8 @@ from sklearn import metrics
 import os
 import cv2
 import timm
+import matplotlib.pyplot as plt
+from datetime import datetime
 
 
 def get_config():
@@ -145,6 +147,34 @@ def test(model, data_loader, loss_function, weight_pos, weight_neg, device):
 
 def get_current_dir():
     return os.path.dirname(os.path.realpath(__file__))
+
+
+class GraphUpdater():
+    def __init__(self, type, name=None):
+        self.type = type
+        if name is None:
+            name = self.type + "_loss_auc_" + \
+                str(int(datetime.timestamp(datetime.now())))
+        self.name = name
+        self.loss = []
+        self.accuracy = []
+        self.epoch = []
+
+    def update(self, loss, accuracy):
+        self.loss.append(loss)
+        self.accuracy.append(accuracy)
+        self.epoch.append(len(self.epoch))
+        df = pd.DataFrame(
+            data={"loss": self.loss, "accuracy": self.accuracy, "epoch": self.epoch})
+        df.to_csv(self.name + ".csv", index_label="epoch")
+
+    def display(self):
+        df = pd.DataFrame(
+            data={"loss": self.loss, "accuracy": self.accuracy, "epoch": self.epoch})
+        df.plot(x="epoch", y=["loss", "accuracy"], title="[" +
+                self.type + "]" + " Loss and Accuracy per epoch")
+        plt.show()
+        plt.savefig(self.name)
 
 
 if __name__ == "__main__":
