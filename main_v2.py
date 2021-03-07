@@ -5,13 +5,14 @@ import torchvision.datasets as datasets
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchsummary import summary
 from sklearn import metrics
 import os
 import cv2
 import timm
 
 
-from utils import get_config, get_data, get_device, get_transform, compute_class_freqs, train, test, get_current_dir
+from utils import get_config, get_data, get_device, get_transform, compute_class_freqs, train, test, get_current_dir, GraphUpdater
 
 cfg = get_config()
 
@@ -33,7 +34,6 @@ class DatasetTransformer(torch.utils.data.Dataset):
         image = cv2.imread(image_path, cv2.IMREAD_COLOR)
 
         image_t = self.transform(image)
-        label = self.labels[idx]
         data = {
             "image": image_t,
             "targets": torch.tensor(self.labels[idx]).float()
@@ -98,12 +98,16 @@ def main():
     model = TLModel(cfg["MODEL_NAME"], pretrained=True)
     model.to(device)
 
+    summary(model, (3, cfg["IMAGE_SIZE"], cfg["IMAGE_SIZE"]))
+
     optimizer = torch.optim.Adam(
         model.parameters(), lr=cfg["LR"], weight_decay=cfg["WEIGHT_DECAY"])
     scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer=optimizer, step_size=20, gamma=0.5)
     loss = nn.BCELoss()
 
+    train_updater = GraphUpdater(type="Train")
+    validation_updater = GraphUpdater(type="Validation")
     model_checkpoint = ModelCheckpoint(model)
 
     freq_pos, freq_neg = compute_class_freqs(train_data.iloc[:, 1:12])
@@ -117,17 +121,24 @@ def main():
         train_loss, train_auc = train(model=model, data_loader=train_dataset_loader, loss_function=loss,
                                       optimizer=optimizer, weight_pos=freq_pos, weight_neg=freq_neg, device=device)
 
+        train_updater.update(**{"loss": train_loss, "accuracy": train_auc})
+
         print(
             f'\tTraining step: Loss: {train_loss}, AUC: {train_auc}', end='\n')
 
         val_loss, val_auc = test(model=model, data_loader=validation_dataset_loader,
                                  loss_function=loss, weight_pos=freq_pos, weight_neg=freq_neg, device=device)
+        validation_updater.update(**{"loss": val_loss, "accuracy": val_auc})
+
         print(f'\tValidation step: Loss: {val_loss}, AUC: {val_auc}', end='\n')
 
         torch.save(model.state_dict(), f'checkpoint_epoch_{t}.pth')
         print('\tModel saved')
 
         model_checkpoint.update(loss=val_loss)
+
+    train_updater.display()
+    validation_updater.display()
 
 
 if __name__ == "__main":
