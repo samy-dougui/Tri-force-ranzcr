@@ -1,0 +1,9 @@
+numpy
+pandas
+torchvision
+torch
+sklearn
+opencv-python
+timm
+albumentations
+torchsummary
