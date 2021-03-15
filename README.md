@@ -2,7 +2,8 @@
 ### Guillaume Picart, Samy Dougui, Guillaume Herry    
 <br> 
 
-Lien vers le challenge: https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/overview
+Lien vers le challenge: https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/overview <br>
+Lien vers le OneDrive contenant les données, la vidéo, ainsi que notr meilleur modèle sous format pth: https://centralesupelec-my.sharepoint.com/:f:/g/personal/guillaume_herry_student-cs_fr/EsxX2WNX-cBGgPHV2-fmJVYBjDSu6oAAqpx4BZqTOOngKA?e=3mmDN1
 <br><br>
 
 **Description du repository:** <br>
@@ -19,12 +20,22 @@ Lien vers le challenge: https://www.kaggle.com/c/ranzcr-clip-catheter-line-class
 **Data:** <br>
 Les données étant trés volumineuses (+ de 10 Go), nous ne pouvons pas les importer sur notre repository, vous pouvez y accéder de deux manières: <br>
 - Directement via le challenge Kaggle: https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/data (bouton *download all*)
-- Via le Onedrive que nous avons créé et qui contient l'ensemble des données: 
+- Via le Onedrive que nous avons créé et qui contient l'ensemble des données (lien à la deuxième ligne du ReadMe).
 
 Afin de tester notre code avec les données, il faut donc:
-- *exploration_des_données.ipynb*: Compléter la variable "BASE_DIR" (seconde cellule), en y mettant le PATH menant aux données (train.csv, train_annotations.csv et les dossiers contenant les jpg . <br>
+- *exploration_des_données.ipynb*: Compléter la variable "BASE_DIR" (seconde cellule), en y mettant le PATH menant aux données (train.csv, train_annotations.csv et les dossiers contenant les jpg) <br>
 - *Scripts Python*: <br>
 
 
 <br><br>
-**Classement final du challenge:** <br> ????
+**Classement final du challenge:** <br> 1230 ème / 1500 <br>
+(Le classement nous semble biaisé car des modèles autout de 96,5% étaient publics, et donc recopiés par beaucoup d'équipes)
+
+<br><br>
+**Vidéo de présentation:** <br>
+Vous pouvez y accéder via le OneDrive que nous avons créé (lien à la seconde ligne du ReadMe).
+
+
+
+
+
