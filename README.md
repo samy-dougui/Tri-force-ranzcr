@@ -44,7 +44,7 @@ Afin de tester notre code avec les données, il faut donc:
 **Classement final du challenge:** 
 Nous obtenons un score de 92.5%, le meilleur score étant à 97,5%. Cela nous place <br> 1230 ème / 1500. <br>
 
-Ce classement nous semble fortement biaisé car le score d'un grand nombre de participants est très proche de celui de Notebook publics. Nous supposons que certaines équipes obtiennent un score autour de 96-97% en effectuant une inférent simplement un des modèles à partir d'un Notebook Public sans effectuer d'entrainement.
+Ce classement nous semble fortement biaisé car le score d'un grand nombre de participants est très proche de celui de Notebook publics. Nous supposons que certaines équipes obtiennent un score autour de 96-97% en inférent simplement un des modèles à partir d'un Notebook Public sans effectuer d'entrainement.
 
 
 <br><br>
