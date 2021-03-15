@@ -7,12 +7,12 @@ Lien vers le challenge: https://www.kaggle.com/c/ranzcr-clip-catheter-line-class
 
 **Description du repository:** <br>
 - *Dossier EDA*: <br>
- &nbsp;&nbsp;&nbsp;        - **exploration_des_données.ipynb** : Notebook contenant les scripts ayant permis de réaliser l'exploration des données dans notre présentation (graphes et annotations).
+&nbsp;&nbsp;&nbsp;        - **exploration_des_données.ipynb** : Notebook contenant les scripts ayant permis de réaliser l'exploration des données dans notre présentation (graphes et annotations).
 
-- *Dossier models*:
- &nbsp;&nbsp;&nbsp;        - **main.py** : <br>
- &nbsp;&nbsp;&nbsp;        - **models.py** : <br>
- &nbsp;&nbsp;&nbsp;        - **utils.py** : <br>
+- *Dossier models*: <br>
+&nbsp;&nbsp;&nbsp;        - **main.py** : <br>
+&nbsp;&nbsp;&nbsp;        - **models.py** : <br>
+&nbsp;&nbsp;&nbsp;        - **utils.py** : <br>
  
 
 <br><br>
