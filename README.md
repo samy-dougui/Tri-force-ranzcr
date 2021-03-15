@@ -31,7 +31,7 @@ Lien vers le OneDrive contenant les données, la vidéo, ainsi que nos meilleurs
 
 
 **Data:** <br>
-Les données étant trés volumineuses (+ de 10 Go), nous ne pouvons pas les importer sur notre repository, vous pouvez y accéder de deux manières: <br>
+Les données étant très volumineuses (+ de 10 Go), nous ne pouvons pas les importer sur notre repository, vous pouvez y accéder de deux manières: <br>
 - Directement via le challenge Kaggle: https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/data (bouton *download all*)
 - Via le Onedrive que nous avons créé et qui contient l'ensemble des données (lien à la deuxième ligne du ReadMe).
 
