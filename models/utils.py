@@ -379,15 +379,23 @@ def get_prediction(model, test_dataset_loader, device, model_name):
 
 def main_predict(cfg, model_name, verbose=False):
     try:
-        model_path = cfg["models"][model_name]
-        print(model_path)
         if model_name == "resnet":
+            model_path = cfg["models"][model_name]
             model = Resnet(cfg=cfg)
+            model.load_state_dict(torch.load(model_path))
+            print(f'Loaded model from file: {model_path}')
+
         elif model_name == "efficientnet":
+            model_path = cfg["models"][model_name]
             model = EfficientNet(cfg=cfg)
+            model.load_state_dict(torch.load(model_path))
+            print(f'Loaded model from file: {model_path}')
+
         else:
             resnet = Resnet(cfg=cfg)
+            resnet.load_state_dict(torch.load(cfg["models"]["resnet"]))
             efficientnet = EfficientNet(cfg=cfg)
+            efficientnet.load_state_dict(torch.load(cfg["models"]["efficientnet"]))  
             model = Ensemble(resnet=resnet, efficientnet=efficientnet)
     except:
         print("Wrong model name")
