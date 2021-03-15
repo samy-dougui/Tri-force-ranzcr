@@ -13,34 +13,35 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from torchsummary import summary
 
-from models import EfficientNet
+from models import EfficientNet, Resnet, Ensemble
+
 
 def get_config():
     return {
         "BATCH_SIZE": 32,
         "EPOCHS": 10,
-        "IMAGE_SIZE":{
-            "efficientnet": 528,
+        "IMAGE_SIZE": {
+            "efficientnet": 260,
             "resnet": 256
         },
         "TARGET_SIZE": 11,
-        "models":{
-            "resnet":"./models/",
-            "efficientnet":"./models/",
-            "ensemble":"./models/"
+        "models": {
+            "resnet": "./models/resnet200d.pth",
+            "efficientnet": "./models/efficientnetb2.pth"
         },
         "TARGET_COLS": ['ETT - Abnormal', 'ETT - Borderline', 'ETT - Normal',
                         'NGT - Abnormal', 'NGT - Borderline', 'NGT - Incompletely Imaged', 'NGT - Normal',
                         'CVC - Abnormal', 'CVC - Borderline', 'CVC - Normal',
                         'Swan Ganz Catheter Present'],
         "IMAGE_COL": "StudyInstanceUID",
-        "DATASET_DIR": "../input/ranzcr-clip-catheter-line-classification/",
+        "DATASET_DIR": "./input/ranzcr-clip-catheter-line-classification/",
         "MODEL_NAME": "efficientnet_b7",
         "LR": 0.01,
         "WEIGHT_DECAY": 0.0,
         "TRAIN_VALIDATION_FRAC": 0.9
 
     }
+
 
 class DatasetTransformer(torch.utils.data.Dataset):
     def __init__(self, df, transform, cfg):
@@ -70,27 +71,40 @@ class DatasetTransformer(torch.utils.data.Dataset):
 
 
 class DatasetTransformer_prediction(torch.utils.data.Dataset):
-    def __init__(self, df, transform, cfg):
-        
-        self.transform = transform
+    def __init__(self, df, cfg):
+
         self.df = df
         self.cfg = cfg
+        self.transform1 = A.Compose(
+            [
+                A.Resize(self.cfg["IMAGE_SIZE"]["efficientnet"],
+                         self.cfg["IMAGE_SIZE"]["efficientnet"]),
+                ToTensorV2()
+            ])
+        self.transform2 = A.Compose(
+            [
+                A.Resize(self.cfg["IMAGE_SIZE"]["resnet"],
+                         self.cfg["IMAGE_SIZE"]["resnet"]),
+                ToTensorV2()
+            ])
         self.file_names = self.df[self.cfg["IMAGE_COL"]].values
-        
+
     def __len__(self):
         return len(self.df)
-    
+
     def __getitem__(self, idx):
         image_name = self.file_names[idx]
         image_path = f'{self.cfg["DATASET_DIR"]}/test/{image_name}.jpg'
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
-        image_t = self.transform(image=image)['image']
-        data = { 
-            "image": image_t.float(), 
+
+        image_t_1 = self.transform1(image=image)['image']
+        image_t_2 = self.transform2(image=image)['image']
+        data = {
+            "image_efficientnet": image_t_1.float(),
+            "image_resnet": image_t_2.float(),
         }
-        
+
         return data
 
 
@@ -110,9 +124,8 @@ class ModelCheckpoint:
     def update(self, loss):
         if (self.min_loss is None) or (loss < self.min_loss):
             print(f"\tSaving a better model here: {self.filepath}", end='\n')
-            torch.save(self.model, self.filepath)
+            torch.save(self.model.state_dict(), self.filepath)
             self.min_loss = loss
-
 
 
 def get_data(mode="test", percentage=0.3):
@@ -121,35 +134,48 @@ def get_data(mode="test", percentage=0.3):
             './input/ranzcr-clip-catheter-line-classification/train.csv')
     except Exception:
         print("Please put the training dataset here: ./input/ranzcr-clip-catheter-line-classification/train.csv")
-        return 
+        return
+
     if mode != "training":
         print(f"[{mode}] mode: Using only {percentage}% of the data")
         return data.sample(frac=percentage)
 
-    print("Training mode, using all the data")
+    print("[Training] mode, using all the data")
     return data
 
 
 def get_device():
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    return torch.device("cpu")
+    return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    # if torch.cuda.is_available():
+    #     return torch.device("cuda")
+    # return torch.device("cpu")
 
 
-def get_transform(image_size, augmented=False):
+def get_transform(image_size, model_name, cfg, augmented=False):
     if augmented:
-        return A.Compose([ 
-            A.Resize(image_size, image_size),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.5),
-            ToTensorV2()
-        ])
+        if model_name == "efficientnet":
+            return A.Compose([
+                A.Resize(cfg["IMAGE_SIZE"][model_name],
+                         cfg["IMAGE_SIZE"][model_name]),
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5),
+                ToTensorV2()
+            ])
+        elif model_name == "resnet":
+            return A.Compose([
+                A.RandomResizedCrop(
+                    cfg["IMAGE_SIZE"][model_name], cfg["IMAGE_SIZE"][model_name], scale=(0.9, 1), p=1),
+                A.HorizontalFlip(p=0.5),
+                A.Normalize(),
+                ToTensorV2()
+            ])
+        else:
+            print("Error returning the transformation, returning the nan-augmented one")
 
-    return  A.Compose([ 
-            A.Resize(image_size, image_size),
-            ToTensorV2()
-        ]) 
-
+    return A.Compose([
+        A.Resize(image_size, image_size),
+        ToTensorV2()
+    ])
 
 
 def compute_class_freqs(labels):
@@ -220,7 +246,6 @@ def train(model, data_loader, loss_function, optimizer, device):
         loss.backward()
         optimizer.step()
 
-
     return total_loss / total_number, np.average(mean_auc)
 
 
@@ -255,10 +280,14 @@ def main_train(cfg, model_name, verbose=False):
         validation_data = data.drop(train_data.index)
     else:
         return
-    train_transform = get_transform(image_size=cfg["IMAGE_SIZE"][model_name], augmented=True)
-    validation_transform = get_transform(image_size=cfg["IMAGE_SIZE"][model_name])
 
-    train_dataset = DatasetTransformer(train_data, transform=train_transform, cfg=cfg)
+    train_transform = get_transform(
+        image_size=cfg["IMAGE_SIZE"][model_name], model_name=model_name, cfg=cfg, augmented=True)
+    validation_transform = get_transform(
+        image_size=cfg["IMAGE_SIZE"][model_name], model_name=model_name, cfg=cfg,)
+
+    train_dataset = DatasetTransformer(
+        train_data, transform=train_transform, cfg=cfg)
     validation_dataset = DatasetTransformer(
         validation_data, transform=validation_transform, cfg=cfg)
 
@@ -268,16 +297,13 @@ def main_train(cfg, model_name, verbose=False):
         dataset=validation_dataset, batch_size=cfg["BATCH_SIZE"], shuffle=True)
 
     if model_name == "resnet":
-        #TODO
+        model = Resnet(cfg=cfg, pretrained=True)
         pass
     elif model_name == "efficientnet":
-        model = EfficientNet(cfg=cfg, model_name=model_name)
-    elif model_name == "ensemble":
-        #TODO
-        pass
+        model = EfficientNet(cfg=cfg, pretrained=True)
     else:
         print("Wrong model name")
-        return 
+        return
 
     model.to(device)
 
@@ -288,7 +314,7 @@ def main_train(cfg, model_name, verbose=False):
         model.parameters(), lr=cfg["LR"], weight_decay=cfg["WEIGHT_DECAY"])
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer=optimizer, patience=3, factor=0.5, verbose=True, mode='min', threshold=2*1e-2)
+        optimizer=optimizer, patience=3, factor=0.5, verbose=verbose, mode='min', threshold=2*1e-2)
 
     loss = nn.BCELoss()
 
@@ -306,7 +332,8 @@ def main_train(cfg, model_name, verbose=False):
 
         train_updater.update(**{"loss": train_loss, "accuracy": train_auc})
 
-        print(f'\tTraining step: Loss: {train_loss}, AUC: {train_auc}', end='\n')
+        print(
+            f'\tTraining step: Loss: {train_loss}, AUC: {train_auc}', end='\n')
 
         val_loss, val_auc = test(model=model, data_loader=validation_dataset_loader,
                                  loss_function=loss, device=device)
@@ -314,7 +341,7 @@ def main_train(cfg, model_name, verbose=False):
 
         print(f'\tValidation step: Loss: {val_loss}, AUC: {val_auc}', end='\n')
 
-        torch.save(model, f'checkpoint_epoch_{t}.pth')
+        torch.save(model.state_dict(), f'checkpoint_epoch_{t}.pth')
         print('\tModel saved')
 
         model_checkpoint.update(loss=val_loss)
@@ -324,22 +351,29 @@ def main_train(cfg, model_name, verbose=False):
     validation_updater.display()
 
 
-def get_prediction(model, test_dataset_loader, device):
+def get_prediction(model, test_dataset_loader, device, model_name):
     with torch.no_grad():
         model.eval()
         probs = []
         size = len(test_dataset_loader)
         i = 0
         for data in test_dataset_loader:
-            print(f"{int(i*100/size)}%", end="\r")
-            image_input = data["image"].to(device)
-            output_1 = model(image_input)
-            output_2 = model(image_input.flip(-1))
-            outputs = (output_1.to('cpu').numpy() + output_2.to('cpu').numpy()) / 2
-            probs.append(outputs)
+            print(f"Predicted {int(i*100/size)}% of the data", end="\r")
+            if model_name == "efficientnet":
+                image_input = data["image_efficientnet"].to(device)
+                output = model(image_input)
+            elif model_name == "resnet":
+                image_input = data["image_resnet"].to(device)
+                output = model(image_input)
+            else:
+                image_260 = data["image_efficientnet"].to(device)
+                image_256 = data["image_resnet"].to(device)
+                output = model(image_260=image_260, image_256=image_256)
+
+            probs.append(output)
             i += 1
         probs = np.concatenate(probs)
-    
+
     return probs
 
 
@@ -347,34 +381,40 @@ def main_predict(cfg, model_name, verbose=False):
     try:
         model_path = cfg["models"][model_name]
         print(model_path)
-        model = torch.load(model_path)
+        if model_name == "resnet":
+            model = Resnet(cfg=cfg)
+        elif model_name == "efficientnet":
+            model = EfficientNet(cfg=cfg)
+        else:
+            resnet = Resnet(cfg=cfg)
+            efficientnet = EfficientNet(cfg=cfg)
+            model = Ensemble(resnet=resnet, efficientnet=efficientnet)
     except:
         print("Wrong model name")
         return
 
-    
     device = get_device()
     model.to(device)
-
+    model.eval()
     df_test = pd.read_csv(f'{cfg["DATASET_DIR"]}/sample_submission.csv')
 
-    transform = get_transform(image_size=cfg["IMAGE_SIZE"][model_name])
+    test_dataset = DatasetTransformer_prediction(
+        cfg=cfg, df=df_test)
+    test_dataset_loader = torch.utils.data.DataLoader(
+        dataset=test_dataset, batch_size=cfg["BATCH_SIZE"], shuffle=True)
 
-    test_dataset = DatasetTransformer_prediction(cfg=cfg, df=df_test, transform=transform)
-    test_dataset_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=cfg["BATCH_SIZE"], shuffle=True)
-    
     if verbose:
         summary(model, (3, cfg["IMAGE_SIZE"], cfg["IMAGE_SIZE"]))
-    
-    predictions = get_prediction(model, test_dataset_loader, device)
+
+    predictions = get_prediction(
+        model, test_dataset_loader, device, model_name)
 
     df_test[cfg["TARGET_COLS"]] = predictions
-    df_test[[cfg["IMAGE_COL"]] + cfg["TARGET_COLS"]].to_csv('submission.csv', index=False)
-    
+    df_test[[cfg["IMAGE_COL"]] + cfg["TARGET_COLS"]
+            ].to_csv('submission.csv', index=False)
+
     if verbose:
         print(df_test.head(20))
-
-
 
 
 class GraphUpdater():

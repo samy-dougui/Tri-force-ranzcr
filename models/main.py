@@ -10,12 +10,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-            '--model',
-            type=str,
-            choices = ['resnet', 'efficientnet', 'ensemble'],
-            help='Which model you want to use',
-            required=True
-            )
+        '--model',
+        type=str,
+        choices=['resnet', 'efficientnet', 'ensemble'],
+        help='Which model you want to use',
+        required=True
+    )
     parser.add_argument(
         '--mode',
         choices=['train', 'test'],
@@ -30,18 +30,18 @@ if __name__ == "__main__":
         action='store_true'
     )
 
-
-
     args = parser.parse_args()
     if args.verbose:
         verbose = True
     else:
         verbose = False
 
-
     if args.mode == "train":
-        main_train(cfg=cfg, model_name=args.model, verbose=verbose)
+        if args.model == 'ensemble':
+            print("Not implemented")
+        else:
+            main_train(cfg=cfg, model_name=args.model, verbose=verbose)
     elif args.mode == "test":
         main_predict(cfg=cfg, model_name=args.model, verbose=verbose)
-    else: 
+    else:
         print("Unknown mode")
