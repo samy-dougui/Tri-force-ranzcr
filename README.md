@@ -3,7 +3,7 @@
 <br> 
 
 Lien vers le challenge: https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/overview <br>
-Lien vers le OneDrive contenant les données, la vidéo, ainsi que notr meilleur modèle sous format pth: https://centralesupelec-my.sharepoint.com/:f:/g/personal/guillaume_herry_student-cs_fr/EsxX2WNX-cBGgPHV2-fmJVYBjDSu6oAAqpx4BZqTOOngKA?e=3mmDN1
+Lien vers le OneDrive contenant les données, la vidéo, ainsi que nos meilleurs modèles sous format pth: https://centralesupelec-my.sharepoint.com/:f:/g/personal/guillaume_herry_student-cs_fr/EsxX2WNX-cBGgPHV2-fmJVYBjDSu6oAAqpx4BZqTOOngKA?e=3mmDN1
 <br><br>
 
 **Description du repository:** <br>
