@@ -378,7 +378,7 @@ def get_prediction(model, test_dataset_loader, device, model_name):
 
 def main_predict(cfg, model_name, verbose=False):
     device = get_device()
-    print(device)
+
     try:
         if model_name == "resnet":
             model_path = cfg["models"][model_name]
