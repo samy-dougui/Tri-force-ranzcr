@@ -32,7 +32,7 @@ Afin de tester notre code avec les données, il faut donc:
 (Le classement nous semble biaisé car des modèles autout de 96,5% étaient publics, et donc recopiés par beaucoup d'équipes)
 
 <br><br>
-**Vidéo de présentation:**
+**Vidéo de présentation:** <br>
 Vous pouvez y accéder via le OneDrive que nous avons créé (lien à la seconde ligne du ReadMe).
 
 
