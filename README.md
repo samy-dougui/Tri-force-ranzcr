@@ -23,7 +23,7 @@ Les données étant trés volumineuses (+ de 10 Go), nous ne pouvons pas les imp
 - Via le Onedrive que nous avons créé et qui contient l'ensemble des données (lien à la deuxième ligne du ReadMe).
 
 Afin de tester notre code avec les données, il faut donc:
-- *exploration_des_données.ipynb*: Compléter la variable "BASE_DIR" (seconde cellule), en y mettant le PATH menant aux données (train.csv, train_annotations.csv et les dossiers contenant les jpg . <br>
+- *exploration_des_données.ipynb*: Compléter la variable "BASE_DIR" (seconde cellule), en y mettant le PATH menant aux données (train.csv, train_annotations.csv et les dossiers contenant les jpg) <br>
 - *Scripts Python*: <br>
 
 
