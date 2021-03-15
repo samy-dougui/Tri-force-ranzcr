@@ -26,17 +26,16 @@ def get_config():
         },
         "TARGET_SIZE": 11,
         "models": {
-            "resnet": "./models/resnet200d.pth",
-            "efficientnet": "./models/efficientnetb2.pth"
+            "resnet": "resnet200d.pth",
+            "efficientnet": "efficientnetb2.pt"
         },
         "TARGET_COLS": ['ETT - Abnormal', 'ETT - Borderline', 'ETT - Normal',
                         'NGT - Abnormal', 'NGT - Borderline', 'NGT - Incompletely Imaged', 'NGT - Normal',
                         'CVC - Abnormal', 'CVC - Borderline', 'CVC - Normal',
                         'Swan Ganz Catheter Present'],
         "IMAGE_COL": "StudyInstanceUID",
-        "DATASET_DIR": "./input/ranzcr-clip-catheter-line-classification/",
-        "MODEL_NAME": "efficientnet_b7",
-        "LR": 0.01,
+        "DATASET_DIR": "../data/",  # PUT YOUR DIR HERE
+        "LR": 0.001,
         "WEIGHT_DECAY": 0.0,
         "TRAIN_VALIDATION_FRAC": 0.9
 
@@ -128,16 +127,16 @@ class ModelCheckpoint:
             self.min_loss = loss
 
 
-def get_data(mode="test", percentage=0.3):
+def get_data(cfg, mode="test", percentage=0.3):
     try:
         data = pd.read_csv(
-            './input/ranzcr-clip-catheter-line-classification/train.csv')
+            f'{cfg["DATASET_DIR"]}/train.csv')
     except Exception:
-        print("Please put the training dataset here: ./input/ranzcr-clip-catheter-line-classification/train.csv")
-        return
+        print("Please put the training dataset here: ../data/train.csv")
+        return None
 
     if mode != "training":
-        print(f"[{mode}] mode: Using only {percentage}% of the data")
+        print(f"[{mode}] mode: Using only {percentage*100}% of the data")
         return data.sample(frac=percentage)
 
     print("[Training] mode, using all the data")
@@ -146,9 +145,6 @@ def get_data(mode="test", percentage=0.3):
 
 def get_device():
     return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    # if torch.cuda.is_available():
-    #     return torch.device("cuda")
-    # return torch.device("cpu")
 
 
 def get_transform(image_size, model_name, cfg, augmented=False):
@@ -230,6 +226,7 @@ def train(model, data_loader, loss_function, optimizer, device):
     mean_auc = []
     model.train()
     for _, data in enumerate(data_loader):
+        print("ok")
         image_input = data["image"].to(device)
         targets = data["targets"].to(device)
         outputs = model(image_input)
@@ -256,6 +253,7 @@ def test(model, data_loader, loss_function, device):
         total_loss = 0.0
         mean_auc = []
         for _, data in enumerate(data_loader):
+            print("ok")
             image_input = data["image"].to(device)
             targets = data["targets"].to(device)
             outputs = model(image_input)
@@ -274,8 +272,8 @@ def get_current_dir():
 def main_train(cfg, model_name, verbose=False):
     device = get_device()
 
-    data = get_data()
-    if data:
+    data = get_data(cfg=cfg)
+    if data is not None:
         train_data = data.sample(frac=cfg["TRAIN_VALIDATION_FRAC"])
         validation_data = data.drop(train_data.index)
     else:
@@ -308,7 +306,8 @@ def main_train(cfg, model_name, verbose=False):
     model.to(device)
 
     if verbose:
-        summary(model, (3, cfg["IMAGE_SIZE"], cfg["IMAGE_SIZE"]))
+        summary(model, (3, cfg["IMAGE_SIZE"][model_name],
+                        cfg["IMAGE_SIZE"][model_name]))
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=cfg["LR"], weight_decay=cfg["WEIGHT_DECAY"])
@@ -378,31 +377,38 @@ def get_prediction(model, test_dataset_loader, device, model_name):
 
 
 def main_predict(cfg, model_name, verbose=False):
+    device = get_device()
+    print(device)
     try:
         if model_name == "resnet":
             model_path = cfg["models"][model_name]
+            print(model_path)
             model = Resnet(cfg=cfg)
-            model.load_state_dict(torch.load(model_path))
+            model.load_state_dict(torch.load(
+                model_path, map_location=torch.device('cpu')))
+            model.to(device)
             print(f'Loaded model from file: {model_path}')
 
         elif model_name == "efficientnet":
             model_path = cfg["models"][model_name]
             model = EfficientNet(cfg=cfg)
-            model.load_state_dict(torch.load(model_path))
+            model.load_state_dict(torch.load(
+                model_path, map_location=torch.device('cpu')))
+            model.to(device)
             print(f'Loaded model from file: {model_path}')
 
         else:
             resnet = Resnet(cfg=cfg)
-            resnet.load_state_dict(torch.load(cfg["models"]["resnet"]))
+            resnet.load_state_dict(torch.load(
+                cfg["models"]["resnet"], map_location=device))
             efficientnet = EfficientNet(cfg=cfg)
-            efficientnet.load_state_dict(torch.load(cfg["models"]["efficientnet"]))  
+            efficientnet.load_state_dict(
+                torch.load(cfg["models"]["efficientnet"], map_location=torch.device('cpu')))
             model = Ensemble(resnet=resnet, efficientnet=efficientnet)
     except:
         print("Wrong model name")
         return
 
-    device = get_device()
-    model.to(device)
     model.eval()
     df_test = pd.read_csv(f'{cfg["DATASET_DIR"]}/sample_submission.csv')
 
@@ -411,8 +417,9 @@ def main_predict(cfg, model_name, verbose=False):
     test_dataset_loader = torch.utils.data.DataLoader(
         dataset=test_dataset, batch_size=cfg["BATCH_SIZE"], shuffle=True)
 
-    if verbose:
-        summary(model, (3, cfg["IMAGE_SIZE"], cfg["IMAGE_SIZE"]))
+    if verbose and model_name != "ensemble":
+        summary(model, (3, cfg["IMAGE_SIZE"][model_name],
+                        cfg["IMAGE_SIZE"][model_name]))
 
     predictions = get_prediction(
         model, test_dataset_loader, device, model_name)

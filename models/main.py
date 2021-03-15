@@ -1,5 +1,5 @@
 import argparse
-
+import pprint
 
 from utils import main_predict, main_train, get_config
 
@@ -33,6 +33,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.verbose:
         verbose = True
+        pprint.pprint(cfg)
     else:
         verbose = False
 
