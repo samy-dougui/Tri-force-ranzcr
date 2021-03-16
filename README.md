@@ -37,7 +37,7 @@ Les données étant trés volumineuses (+ de 10 Go), nous ne pouvons pas les imp
 
 Afin de tester notre code avec les données, il faut donc:
 - *exploration_des_données.ipynb*: Compléter la variable "BASE_DIR" (seconde cellule), en y mettant le PATH menant aux données (train.csv, train_annotations.csv et les dossiers contenant les jpg) <br>
-- *Scripts Python*: Préciser dans la fonction ```get_config()``` le chemin vers les données<br>
+- *Scripts Python*: Préciser dans la fonction ```get_config()``` le chemin vers les données et les fichers pickle des modèles.<br>
 
 
 <br><br>
